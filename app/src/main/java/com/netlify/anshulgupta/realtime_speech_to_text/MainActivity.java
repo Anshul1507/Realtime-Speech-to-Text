@@ -130,6 +130,7 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
 
         text.setText(result);
 
+        //TODO:: Insert check when user didnt speaks
     }
 
     @Override
