@@ -1,29 +1,27 @@
 package com.netlify.anshulgupta.realtime_speech_to_text;
 
+import android.Manifest;
+import android.content.DialogInterface;
+import android.content.pm.PackageManager;
+import android.os.Bundle;
+import android.util.Log;
+import android.view.View;
+import android.widget.ImageButton;
+import android.widget.LinearLayout;
+import android.widget.TextView;
+import android.widget.Toast;
+
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
-import android.Manifest;
-import android.content.DialogInterface;
-import android.content.pm.PackageManager;
-import android.os.Bundle;
-import android.view.View;
-import android.widget.Button;
-import android.widget.EditText;
-import android.widget.ImageButton;
-import android.widget.LinearLayout;
-import android.widget.TextView;
-import android.widget.Toast;
-
 import net.gotev.speech.GoogleVoiceTypingDisabledException;
 import net.gotev.speech.Speech;
 import net.gotev.speech.SpeechDelegate;
 import net.gotev.speech.SpeechRecognitionNotAvailable;
 import net.gotev.speech.SpeechUtil;
-import net.gotev.speech.TextToSpeechCallback;
 import net.gotev.speech.ui.SpeechProgressView;
 
 import java.util.List;
@@ -33,9 +31,7 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
     private final int PERMISSIONS_REQUEST = 1;
 
     private ImageButton button;
-    private Button speak;
     private TextView text;
-    private EditText textToSpeech;
     private SpeechProgressView progress;
     private LinearLayout linearLayout;
 
@@ -56,16 +52,7 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
             }
         });
 
-        speak = findViewById(R.id.speak);
-        speak.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                onSpeakClick();
-            }
-        });
-
         text = findViewById(R.id.text);
-        textToSpeech = findViewById(R.id.textToSpeech) ;
         progress = findViewById(R.id.progress);
 
         int[] colors = {
@@ -127,30 +114,6 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
         }
     }
 
-    private void onSpeakClick() {
-        if (textToSpeech.getText().toString().trim().isEmpty()) {
-            Toast.makeText(this, R.string.input_something, Toast.LENGTH_LONG).show();
-            return;
-        }
-
-        Speech.getInstance().say(textToSpeech.getText().toString().trim(), new TextToSpeechCallback() {
-            @Override
-            public void onStart() {
-                Toast.makeText(MainActivity.this, "TTS onStart", Toast.LENGTH_SHORT).show();
-            }
-
-            @Override
-            public void onCompleted() {
-                Toast.makeText(MainActivity.this, "TTS onCompleted", Toast.LENGTH_SHORT).show();
-            }
-
-            @Override
-            public void onError() {
-                Toast.makeText(MainActivity.this, "TTS onError", Toast.LENGTH_SHORT).show();
-            }
-        });
-    }
-
     @Override
     public void onStartOfSpeech() {
     }
@@ -162,19 +125,11 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
 
     @Override
     public void onSpeechResult(String result) {
-
         button.setVisibility(View.VISIBLE);
         linearLayout.setVisibility(View.GONE);
 
         text.setText(result);
 
-        /* On Repeat of Google Voice of recognized speech */
-//        if (result.isEmpty()) {
-//            Speech.getInstance().say(getString(R.string.repeat));
-//
-//        } else {
-//            Speech.getInstance().say(result);
-//        }
     }
 
     @Override

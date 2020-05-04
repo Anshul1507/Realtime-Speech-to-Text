@@ -39,24 +39,4 @@
         android:layout_centerVertical="true"
         android:src="@drawable/ic_mic" />
 
-    <Button
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="say"
-        android:id="@+id/speak"
-        android:layout_alignParentBottom="true"
-        android:layout_alignParentRight="true"
-        android:layout_alignParentEnd="true" />
-
-    <EditText
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:id="@+id/textToSpeech"
-        android:hint="edittext"
-        android:layout_alignTop="@+id/speak"
-        android:layout_toLeftOf="@+id/speak"
-        android:layout_alignParentLeft="true"
-        android:layout_alignParentStart="true"
-        android:layout_alignParentBottom="true" />
-
 </RelativeLayout>
