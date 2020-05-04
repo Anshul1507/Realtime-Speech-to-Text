@@ -168,12 +168,13 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
 
         text.setText(result);
 
-        if (result.isEmpty()) {
-            Speech.getInstance().say(getString(R.string.repeat));
-
-        } else {
-            Speech.getInstance().say(result);
-        }
+        /* On Repeat of Google Voice of recognized speech */
+//        if (result.isEmpty()) {
+//            Speech.getInstance().say(getString(R.string.repeat));
+//
+//        } else {
+//            Speech.getInstance().say(result);
+//        }
     }
 
     @Override
