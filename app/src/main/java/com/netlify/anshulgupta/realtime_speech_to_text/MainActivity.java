@@ -4,8 +4,10 @@ import android.Manifest;
 import android.content.DialogInterface;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
+import android.os.Handler;
 import android.util.Log;
 import android.view.View;
+import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -41,6 +43,8 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
         setContentView(R.layout.activity_main);
 
         Speech.init(this, getPackageName());
+//        Speech.getInstance().setPreferOffline(true);
+
 
         linearLayout = findViewById(R.id.linearLayout);
 
@@ -120,15 +124,35 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
 
     @Override
     public void onSpeechRmsChanged(float value) {
-        //Log.d(getClass().getSimpleName(), "Speech recognition rms is now " + value +  "dB");
+//        Log.d(getClass().getSimpleName(), "Speech recognition rms is now " + value +  "dB");
     }
 
     @Override
     public void onSpeechResult(String result) {
-        button.setVisibility(View.VISIBLE);
-        linearLayout.setVisibility(View.GONE);
+//        button.setVisibility(View.VISIBLE);
+//        linearLayout.setVisibility(View.GONE);
 
-        text.setText(result);
+
+//        Speech.getInstance().stopListening();
+
+            text.setText(result);
+            Speech.getInstance().stopTextToSpeech();
+
+                Handler handler = new Handler();
+                handler.postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        try {
+                            Speech.getInstance().startListening(progress, MainActivity.this);
+                        } catch (SpeechRecognitionNotAvailable speechRecognitionNotAvailable) {
+                            speechRecognitionNotAvailable.printStackTrace();
+                        } catch (GoogleVoiceTypingDisabledException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }, 100);
+
+//        onButtonClick();
 
         //TODO:: Insert check when user didnt speaks
     }
