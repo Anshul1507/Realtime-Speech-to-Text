@@ -1,10 +1,14 @@
 package com.netlify.anshulgupta.realtime_speech_to_text;
 
 import android.Manifest;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.pm.PackageManager;
+import android.media.AudioManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageButton;
@@ -37,6 +41,8 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
     private SpeechProgressView progress;
     private LinearLayout linearLayout;
     private Boolean isRunning = true;
+    private Integer original_volume_level;
+    private AudioManager audioManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -44,6 +50,10 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
         setContentView(R.layout.activity_main);
 
         Speech.init(this, getPackageName());
+
+        audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
+        assert audioManager != null;
+        original_volume_level = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC);
 
         linearLayout = findViewById(R.id.linearLayout);
 
@@ -53,11 +63,13 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
             @Override
             public void onClick(View view) {
                 isRunning = false;
+                audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, original_volume_level, 0);
             }
         });
         button.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+
                 onButtonClick();
             }
         });
@@ -79,6 +91,7 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
     protected void onDestroy() {
         super.onDestroy();
         Speech.getInstance().shutdown();
+
     }
 
     private void onButtonClick() {
@@ -115,6 +128,7 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
         try {
             Speech.getInstance().stopTextToSpeech();
             Speech.getInstance().startListening(progress, MainActivity.this);
+            audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, 0, 0);
 
         } catch (SpeechRecognitionNotAvailable exc) {
             showSpeechNotSupportedDialog();
@@ -136,27 +150,29 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
     @Override
     public void onSpeechResult(String result) {
 
-            text.setText(result);
-            Speech.getInstance().stopTextToSpeech();
+        text.setText(result);
+        Speech.getInstance().stopTextToSpeech();
 
-            if(isRunning) {
-                Handler handler = new Handler();
-                handler.postDelayed(new Runnable() {
-                    @Override
-                    public void run() {
-                        try {
-                            Speech.getInstance().startListening(progress, MainActivity.this);
-                        } catch (SpeechRecognitionNotAvailable speechRecognitionNotAvailable) {
-                            speechRecognitionNotAvailable.printStackTrace();
-                        } catch (GoogleVoiceTypingDisabledException e) {
-                            e.printStackTrace();
-                        }
+        if (isRunning) {
+            Handler handler = new Handler();
+            handler.postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        Speech.getInstance().startListening(progress, MainActivity.this);
+                        audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, 0, 0);
+                    } catch (SpeechRecognitionNotAvailable speechRecognitionNotAvailable) {
+                        speechRecognitionNotAvailable.printStackTrace();
+                    } catch (GoogleVoiceTypingDisabledException e) {
+                        e.printStackTrace();
                     }
-                }, 100);
-            }else{
-                button.setVisibility(View.VISIBLE);
-                linearLayout.setVisibility(View.GONE);
-            }
+                }
+            }, 100);
+        } else {
+
+            button.setVisibility(View.VISIBLE);
+            linearLayout.setVisibility(View.GONE);
+        }
     }
 
 
@@ -172,7 +188,7 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
         DialogInterface.OnClickListener dialogClickListener = new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
-                switch (which){
+                switch (which) {
                     case DialogInterface.BUTTON_POSITIVE:
                         SpeechUtil.redirectUserToGoogleAppOnPlayStore(MainActivity.this);
                         break;
