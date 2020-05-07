@@ -33,9 +33,12 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
     private final int PERMISSIONS_REQUEST = 1;
 
     private ImageButton button;
+    private Button btnStop;
     private TextView text;
     private SpeechProgressView progress;
     private LinearLayout linearLayout;
+    private Boolean isRunning = true;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -49,6 +52,13 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
         linearLayout = findViewById(R.id.linearLayout);
 
         button = findViewById(R.id.button);
+        btnStop = findViewById(R.id.buttonStop);
+        btnStop.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                isRunning = false;
+            }
+        });
         button.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -138,6 +148,7 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
             text.setText(result);
             Speech.getInstance().stopTextToSpeech();
 
+            if(isRunning) {
                 Handler handler = new Handler();
                 handler.postDelayed(new Runnable() {
                     @Override
@@ -151,14 +162,20 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
                         }
                     }
                 }, 100);
+            }else{
+                button.setVisibility(View.VISIBLE);
+                linearLayout.setVisibility(View.GONE);
+            }
 
 //        onButtonClick();
 
         //TODO:: Insert check when user didnt speaks
     }
 
+
     @Override
     public void onSpeechPartialResults(List<String> results) {
+        Log.i(">>", "onButtonClick: 5.1");
         text.setText("");
         for (String partial : results) {
             text.append(partial + " ");
