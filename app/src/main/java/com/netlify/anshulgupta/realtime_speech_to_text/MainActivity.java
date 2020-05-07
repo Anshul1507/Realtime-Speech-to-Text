@@ -5,7 +5,6 @@ import android.content.DialogInterface;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.os.Handler;
-import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageButton;
@@ -39,15 +38,12 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
     private LinearLayout linearLayout;
     private Boolean isRunning = true;
 
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
         Speech.init(this, getPackageName());
-//        Speech.getInstance().setPreferOffline(true);
-
 
         linearLayout = findViewById(R.id.linearLayout);
 
@@ -139,11 +135,6 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
 
     @Override
     public void onSpeechResult(String result) {
-//        button.setVisibility(View.VISIBLE);
-//        linearLayout.setVisibility(View.GONE);
-
-
-//        Speech.getInstance().stopListening();
 
             text.setText(result);
             Speech.getInstance().stopTextToSpeech();
@@ -166,16 +157,11 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
                 button.setVisibility(View.VISIBLE);
                 linearLayout.setVisibility(View.GONE);
             }
-
-//        onButtonClick();
-
-        //TODO:: Insert check when user didnt speaks
     }
 
 
     @Override
     public void onSpeechPartialResults(List<String> results) {
-        Log.i(">>", "onButtonClick: 5.1");
         text.setText("");
         for (String partial : results) {
             text.append(partial + " ");
