@@ -55,27 +55,32 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
         assert audioManager != null;
         original_volume_level = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC);
 
-        linearLayout = findViewById(R.id.linearLayout);
-
+        linearLayout = findViewById(R.id.layout_progress);
         button = findViewById(R.id.button);
         btnStop = findViewById(R.id.buttonStop);
-        btnStop.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                isRunning = false;
-                audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, original_volume_level, 0);
-            }
-        });
+        text = findViewById(R.id.text);
+        progress = findViewById(R.id.progress);
+
+        linearLayout.setVisibility(View.GONE);
+
         button.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-
+                button.setVisibility(View.GONE);
+                btnStop.setVisibility(View.VISIBLE);
                 onButtonClick();
             }
         });
 
-        text = findViewById(R.id.text);
-        progress = findViewById(R.id.progress);
+        btnStop.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                isRunning = false;
+                btnStop.setVisibility(View.GONE);
+                button.setVisibility(View.VISIBLE);
+                audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, original_volume_level, 0);
+            }
+        });
 
         int[] colors = {
                 ContextCompat.getColor(this, R.color.colorPrimary),
@@ -86,13 +91,13 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
         int[] heights = {40, 56, 48, 50, 44};
         progress.setBarMaxHeightsInDp(heights);
         progress.setColors(colors);
+
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
         Speech.getInstance().shutdown();
-
     }
 
     private void onButtonClick() {
