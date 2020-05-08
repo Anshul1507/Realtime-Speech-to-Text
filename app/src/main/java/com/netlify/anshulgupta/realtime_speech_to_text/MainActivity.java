@@ -4,10 +4,13 @@ import android.Manifest;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
 import android.media.AudioManager;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
+import android.text.Spannable;
+import android.text.SpannableString;
+import android.text.style.ForegroundColorSpan;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -29,12 +32,15 @@ import net.gotev.speech.SpeechRecognitionNotAvailable;
 import net.gotev.speech.SpeechUtil;
 import net.gotev.speech.ui.SpeechProgressView;
 
+import java.text.BreakIterator;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity implements SpeechDelegate {
 
     private final int PERMISSIONS_REQUEST = 1;
-
+    private static final String TAG = "MainActivity";
     private ImageButton button;
     private Button btnStop;
     private TextView text;
@@ -43,6 +49,13 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
     private Boolean isRunning = true;
     private Integer original_volume_level;
     private AudioManager audioManager;
+
+    private ArrayList<String> textList;
+    private ArrayList<String> speechList;
+    private ArrayList<String> textAllList = new ArrayList<String>();
+    private int counterSpan = 0,idx=0;
+    private SpannableString spannableString;
+    private ForegroundColorSpan foregroundRedSpan,foregroundGreenSpan;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -62,10 +75,32 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
         progress = findViewById(R.id.progress);
 
         linearLayout.setVisibility(View.GONE);
+        text.setText(R.string.sample1);
+
+        String paraText = text.getText().toString().toLowerCase();
+        spannableString = new SpannableString(paraText);
+        foregroundRedSpan = new ForegroundColorSpan(Color.RED);
+        foregroundGreenSpan = new ForegroundColorSpan(Color.GREEN);
+
+
+        textList = new ArrayList<>();
+        textList.addAll(getWords(paraText));
+
+        textAllList = new ArrayList<String>(Arrays.asList(paraText.split(" ")));
+
+        for(int i=0;i<textAllList.size();i++){
+            System.out.println(textAllList.get(i));
+        }
+        Log.d(TAG, "--------------------------------------------");
+        for(int i=0;i<textList.size();i++){
+            System.out.println(textList.get(i));
+        }
+
 
         button.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+                isRunning = true;
                 button.setVisibility(View.GONE);
                 btnStop.setVisibility(View.VISIBLE);
                 onButtonClick();
@@ -98,6 +133,22 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
     protected void onDestroy() {
         super.onDestroy();
         Speech.getInstance().shutdown();
+    }
+
+    public static ArrayList<String> getWords(String text) {
+        ArrayList<String> words = new ArrayList<String>();
+        BreakIterator breakIterator = BreakIterator.getWordInstance();
+        breakIterator.setText(text);
+        int lastIndex = breakIterator.first();
+        while (BreakIterator.DONE != lastIndex) {
+            int firstIndex = lastIndex;
+            lastIndex = breakIterator.next();
+            if (lastIndex != BreakIterator.DONE && Character.isLetterOrDigit(text.charAt(firstIndex))) {
+                words.add(text.substring(firstIndex, lastIndex));
+            }
+        }
+
+        return words;
     }
 
     private void onButtonClick() {
@@ -155,39 +206,66 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
 
     @Override
     public void onSpeechResult(String result) {
+        Log.d(TAG, "onSpeechResult: " + result);
 
-        text.setText(result);
-        Speech.getInstance().stopTextToSpeech();
-
-        if (isRunning) {
-            Handler handler = new Handler();
-            handler.postDelayed(new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        Speech.getInstance().startListening(progress, MainActivity.this);
-                        audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, 0, 0);
-                    } catch (SpeechRecognitionNotAvailable speechRecognitionNotAvailable) {
-                        speechRecognitionNotAvailable.printStackTrace();
-                    } catch (GoogleVoiceTypingDisabledException e) {
-                        e.printStackTrace();
-                    }
-                }
-            }, 100);
-        } else {
-
-            button.setVisibility(View.VISIBLE);
-            linearLayout.setVisibility(View.GONE);
+        speechList = new ArrayList<>();
+        speechList.clear();
+        if(!result.isEmpty()) {
+            speechList = new ArrayList<>(Arrays.asList(result.toLowerCase().split(" ")));
         }
+        Log.d(TAG, "onSpeechResult: size of speech List => " + speechList.size());
+        for (int i = 0; i < speechList.size(); i++) {
+
+            int l1 = speechList.get(i).length();
+            int l2 = textList.get(idx).length();
+
+            if (textList.get(idx).substring(0,1).equals(speechList.get(i).substring(0,1)) || textList.get(idx).substring(l2-2,l2-1).equals(speechList.get(i).substring(l1-2,l1-1))) {
+                Log.d(TAG, "onSpeechResults: Matched Word " + speechList.get(i) + " -> " + textList.get(idx) + " to " + textAllList.get(idx));
+                spannableString.setSpan(foregroundGreenSpan, 0, counterSpan + textAllList.get(idx).length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+                text.setText(spannableString);
+                counterSpan += textAllList.get(idx).length() + 1;
+                idx++;
+
+            } else {
+                Log.d(TAG, "onSpeechResults: Unmatched Word " + speechList.get(i) + " -> " + textList.get(idx) + " to " + textAllList.get(idx));
+                spannableString.setSpan(foregroundRedSpan, counterSpan, counterSpan + textAllList.get(idx).length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+                text.setText(spannableString);
+            }
+        }
+            Log.d(TAG, "onSpeechResult: -----> Empty Running of loop" );
+
+            Speech.getInstance().stopTextToSpeech();
+            if (isRunning) {
+                Handler handler = new Handler();
+                handler.postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        try {
+                            Speech.getInstance().startListening(progress, MainActivity.this);
+                            audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, 0, 0);
+                        } catch (SpeechRecognitionNotAvailable speechRecognitionNotAvailable) {
+                            speechRecognitionNotAvailable.printStackTrace();
+                        } catch (GoogleVoiceTypingDisabledException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }, 100);
+            } else {
+
+                button.setVisibility(View.VISIBLE);
+                linearLayout.setVisibility(View.GONE);
+            }
+
     }
 
 
     @Override
     public void onSpeechPartialResults(List<String> results) {
-        text.setText("");
-        for (String partial : results) {
-            text.append(partial + " ");
-        }
+//        text.setText("");
+//        for (String partial : results) {
+//            Log.d(TAG, "onSpeechPartialResults: " + partial);
+//            text.append(partial + " ");
+//        }
     }
 
     private void showSpeechNotSupportedDialog() {
