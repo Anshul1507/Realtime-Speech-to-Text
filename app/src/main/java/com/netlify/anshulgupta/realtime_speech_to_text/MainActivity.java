@@ -78,12 +78,13 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
         progress = findViewById(R.id.progress);
 
         int[] colors = {
-                ContextCompat.getColor(this, android.R.color.black),
-                ContextCompat.getColor(this, android.R.color.darker_gray),
-                ContextCompat.getColor(this, android.R.color.black),
-                ContextCompat.getColor(this, android.R.color.holo_orange_dark),
-                ContextCompat.getColor(this, android.R.color.holo_red_dark)
+                ContextCompat.getColor(this, R.color.colorPrimary),
+                ContextCompat.getColor(this, R.color.colorPrimary),
+                ContextCompat.getColor(this, R.color.colorPrimary),
         };
+
+        int[] heights = {40, 56, 48, 50, 44};
+        progress.setBarMaxHeightsInDp(heights);
         progress.setColors(colors);
     }
 
