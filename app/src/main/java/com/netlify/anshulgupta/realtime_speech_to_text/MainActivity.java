@@ -223,13 +223,12 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
 
             if (textList.get(idx).substring(0,1).equals(speechList.get(i).substring(0,1)) || textList.get(idx).substring(l2-2,l2-1).equals(speechList.get(i).substring(l1-2,l1-1))) {
                 Log.d(TAG, "onSpeechResults: Matched Word " + speechList.get(i) + " -> " + textList.get(idx) + " to " + textAllList.get(idx));
-                spannableString.setSpan(foregroundGreenSpan, 0, counterSpan + textAllList.get(idx).length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+                counterSpan += textAllList.get(idx).length()+1;
+                spannableString.setSpan(foregroundGreenSpan, 0, counterSpan , Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
                 text.setText(spannableString);
-                counterSpan += textAllList.get(idx).length() + 1;
+
                 idx++;
-                if(sizeCounter>1){
-                    counter++;
-                }
+                if(sizeCounter>1){ counter++; }
 
             } else {
                 Log.d(TAG, "onSpeechResults: Unmatched Word " + speechList.get(i) + " -> " + textList.get(idx) + " to " + textAllList.get(idx));
@@ -240,7 +239,8 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
 
             if(i==sizeCounter-1 && counter>0){
                 /*Checking on 50% accuracy*/
-                if(sizeCounter/counter<3){
+                Log.d(TAG, "onSpeechResult: Accuracy: -> " + (float)(sizeCounter/(float)counter)*100);
+                if(sizeCounter/counter<=2){
                     spannableString.setSpan(foregroundGreenSpan, 0, counterSpan , Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
                     text.setText(spannableString);
                 }
