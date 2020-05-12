@@ -3,6 +3,7 @@ package com.netlify.anshulgupta.realtime_speech_to_text;
 import android.Manifest;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.media.AudioManager;
@@ -11,6 +12,7 @@ import android.os.Environment;
 import android.os.Handler;
 import android.text.Spannable;
 import android.text.SpannableString;
+import android.text.Spanned;
 import android.text.style.ForegroundColorSpan;
 import android.util.Log;
 import android.view.View;
@@ -56,7 +58,7 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
     private ArrayList<String> textList;
     private ArrayList<String> speechList;
     private ArrayList<String> textAllList = new ArrayList<String>();
-    private int counterSpan = 0,idx=0;
+    private int counterSpan = 0,idx=0,prevCounterSpan = 0;
     private SpannableString spannableString;
     private ForegroundColorSpan foregroundRedSpan,foregroundGreenSpan;
 
@@ -203,13 +205,14 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
     public void onSpeechResult(String result) {
         Log.d(TAG, "onSpeechResult: " + result.toLowerCase());
         int counter = 0;
-
+        ArrayList<String> numStringList = new ArrayList<>(Arrays.asList("one", "two", "three", "four", "five", "six", "seven", "eight", "nine"));
         speechList = new ArrayList<>();
 
         if(!result.isEmpty()) {
             speechList.clear();
             if(result.length()>1) {
-                speechList = new ArrayList<>(Arrays.asList(result.toLowerCase().split(" ")));
+//                speechList = new ArrayList<>(Arrays.asList(result.toLowerCase().split(" ")));
+                speechList.addAll(getWords(result));
             }else{
                 speechList.add(result.toLowerCase());
             }
@@ -217,13 +220,27 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
         int sizeCounter = speechList.size();
         Log.d(TAG, "onSpeechResult: size of speech List => " + speechList.size());
         for (int i = 0; i < speechList.size(); i++) {
+            Log.d(TAG, "onSpeechResult: loop starts " + i + " value " + speechList.get(i) + " -- " + textList.get(idx));
+//            boolean numericValue = false; // Because it stops on numeric as Array list is of String data-type
+                //TODO:: additional checks like if text is integer or float, then we have to keep that integer number also and compare too.
+            if( (int)(speechList.get(i).charAt(0)) <= 57 && (int)(speechList.get(i).charAt(0)) >= 48){
+                /* Safety for integer overflows with string type ArrayList */
+                Log.d(TAG, "onSpeechResult: Enter for numeric ");
+                Log.d(TAG, "onSpeechResult: Before :-> " + speechList.get(i));
+                if(Integer.parseInt(String.valueOf(speechList.get(i))) > 9){
+                    continue;
+                }
+                speechList.set(i,numStringList.get(Integer.parseInt(speechList.get(i))-1) );
+                Log.d(TAG, "onSpeechResult: After :-> " + speechList.get(i));
+            }
 
-            int l1 = speechList.get(i).length();
-            int l2 = textList.get(idx).length();
-
-            if (textList.get(idx).substring(0,1).equals(speechList.get(i).substring(0,1)) || textList.get(idx).substring(l2-2,l2-1).equals(speechList.get(i).substring(l1-2,l1-1))) {
+            if ( textList.get(idx).substring(0,1).equals(speechList.get(i).substring(0,1)) ||
+                 textList.get(idx).substring(textList.get(idx).length()-1).equals(speechList.get(i).substring(speechList.get(i).length()-1))
+            ) {
+                Log.d(TAG, "onSpeechResult: correct word loop");
+                    counterSpan += textAllList.get(idx).length()+1;
                 Log.d(TAG, "onSpeechResults: Matched Word " + speechList.get(i) + " -> " + textList.get(idx) + " to " + textAllList.get(idx));
-                counterSpan += textAllList.get(idx).length()+1;
+                spannableString.removeSpan(foregroundRedSpan);
                 spannableString.setSpan(foregroundGreenSpan, 0, counterSpan , Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
                 text.setText(spannableString);
 
@@ -231,20 +248,33 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
                 if(sizeCounter>1){ counter++; }
 
             } else {
+                Log.d(TAG, "onSpeechResult: incorrect word loop");
+                int wrongTextSpan=counterSpan;
+                    wrongTextSpan += textAllList.get(idx).length();
                 Log.d(TAG, "onSpeechResults: Unmatched Word " + speechList.get(i) + " -> " + textList.get(idx) + " to " + textAllList.get(idx));
-                spannableString.setSpan(foregroundRedSpan, counterSpan, counterSpan + textAllList.get(idx).length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+                spannableString.setSpan(foregroundRedSpan, counterSpan, wrongTextSpan, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
                 text.setText(spannableString);
-                break;
+//                break;
+            }
+
+            if(i==sizeCounter-1 && counter==0){
+                /* When no word is matched or size is one -> counter value is 0 */
+                speechList.clear();
             }
 
             if(i==sizeCounter-1 && counter>0){
                 /*Checking on 50% accuracy*/
                 Log.d(TAG, "onSpeechResult: Accuracy: -> " + (float)(sizeCounter/(float)counter)*100);
                 if(sizeCounter/counter<=2){
+                    spannableString.removeSpan(foregroundRedSpan);
                     spannableString.setSpan(foregroundGreenSpan, 0, counterSpan , Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    text.setText(spannableString);
+                }else{
+                    spannableString.setSpan(foregroundRedSpan,prevCounterSpan,counterSpan, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                     text.setText(spannableString);
                 }
             }
+            prevCounterSpan = counterSpan;
 
         }
             Log.d(TAG, "onSpeechResult: -----> Empty Running of loop" );
