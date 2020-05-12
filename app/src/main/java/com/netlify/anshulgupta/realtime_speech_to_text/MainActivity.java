@@ -7,6 +7,7 @@ import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.media.AudioManager;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.Handler;
 import android.text.Spannable;
 import android.text.SpannableString;
@@ -24,6 +25,8 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+
+
 
 import net.gotev.speech.GoogleVoiceTypingDisabledException;
 import net.gotev.speech.Speech;
@@ -87,14 +90,6 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
         textList.addAll(getWords(paraText));
 
         textAllList = new ArrayList<String>(Arrays.asList(paraText.split(" ")));
-
-        for(int i=0;i<textAllList.size();i++){
-            System.out.println(textAllList.get(i));
-        }
-        Log.d(TAG, "--------------------------------------------");
-        for(int i=0;i<textList.size();i++){
-            System.out.println(textList.get(i));
-        }
 
 
         button.setOnClickListener(new View.OnClickListener() {
@@ -206,13 +201,20 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
 
     @Override
     public void onSpeechResult(String result) {
-        Log.d(TAG, "onSpeechResult: " + result);
+        Log.d(TAG, "onSpeechResult: " + result.toLowerCase());
+        int counter = 0;
 
         speechList = new ArrayList<>();
-        speechList.clear();
+
         if(!result.isEmpty()) {
-            speechList = new ArrayList<>(Arrays.asList(result.toLowerCase().split(" ")));
+            speechList.clear();
+            if(result.length()>1) {
+                speechList = new ArrayList<>(Arrays.asList(result.toLowerCase().split(" ")));
+            }else{
+                speechList.add(result.toLowerCase());
+            }
         }
+        int sizeCounter = speechList.size();
         Log.d(TAG, "onSpeechResult: size of speech List => " + speechList.size());
         for (int i = 0; i < speechList.size(); i++) {
 
@@ -225,12 +227,25 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
                 text.setText(spannableString);
                 counterSpan += textAllList.get(idx).length() + 1;
                 idx++;
+                if(sizeCounter>1){
+                    counter++;
+                }
 
             } else {
                 Log.d(TAG, "onSpeechResults: Unmatched Word " + speechList.get(i) + " -> " + textList.get(idx) + " to " + textAllList.get(idx));
                 spannableString.setSpan(foregroundRedSpan, counterSpan, counterSpan + textAllList.get(idx).length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
                 text.setText(spannableString);
+                break;
             }
+
+            if(i==sizeCounter-1 && counter>0){
+                /*Checking on 50% accuracy*/
+                if(sizeCounter/counter<3){
+                    spannableString.setSpan(foregroundGreenSpan, 0, counterSpan , Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    text.setText(spannableString);
+                }
+            }
+
         }
             Log.d(TAG, "onSpeechResult: -----> Empty Running of loop" );
 
