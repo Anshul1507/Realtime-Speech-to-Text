@@ -98,9 +98,15 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
             @Override
             public void onClick(View view) {
                 isRunning = true;
+                spannableString.removeSpan(foregroundGreenSpan);
+                spannableString.removeSpan(foregroundRedSpan);
+                text.setText(spannableString);
                 button.setVisibility(View.GONE);
                 btnStop.setVisibility(View.VISIBLE);
                 linearLayout.setVisibility(View.VISIBLE);
+                counterSpan = 0;
+                prevIdx=0;
+                Speech.getInstance().stopTextToSpeech();
                 onButtonClick();
             }
         });
@@ -110,7 +116,7 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
             public void onClick(View view) {
                 isRunning = false;
                 btnStop.setVisibility(View.GONE);
-                button.setVisibility(View.VISIBLE);
+                Toast.makeText(getApplicationContext(),"Hold on to start again",Toast.LENGTH_SHORT).show();
                 linearLayout.setVisibility(View.GONE);
                 Speech.getInstance().stopTextToSpeech();
                 audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, original_volume_level, 0);
@@ -179,9 +185,6 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
     }
 
     private void onRecordAudioPermissionGranted() {
-//        button.setVisibility(View.GONE);
-//        linearLayout.setVisibility(View.VISIBLE);
-
         try {
             Speech.getInstance().stopTextToSpeech();
             Speech.getInstance().startListening(progress, MainActivity.this);
@@ -302,6 +305,15 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
                 }
             }
             prevCounterSpan = counterSpan;
+            if(idx == textList.size()){
+                // as same as button stop function
+                isRunning = false;
+                btnStop.setVisibility(View.GONE);
+                button.setVisibility(View.VISIBLE);
+                linearLayout.setVisibility(View.GONE);
+                Speech.getInstance().stopTextToSpeech();
+                audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, original_volume_level, 0);
+            }
         }
             Log.d(TAG, "onSpeechResult: -----> Empty Running of loop ");
 
@@ -325,7 +337,7 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
                     }, 100);
                 } else {
                     button.setVisibility(View.VISIBLE);
-                    linearLayout.setVisibility(View.GONE);
+//                    linearLayout.setVisibility(View.GONE);
                 }
             }
 
