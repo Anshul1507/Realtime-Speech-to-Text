@@ -100,6 +100,7 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
                 isRunning = true;
                 button.setVisibility(View.GONE);
                 btnStop.setVisibility(View.VISIBLE);
+                linearLayout.setVisibility(View.VISIBLE);
                 onButtonClick();
             }
         });
@@ -110,6 +111,8 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
                 isRunning = false;
                 btnStop.setVisibility(View.GONE);
                 button.setVisibility(View.VISIBLE);
+                linearLayout.setVisibility(View.GONE);
+                Speech.getInstance().stopTextToSpeech();
                 audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, original_volume_level, 0);
             }
         });
@@ -176,8 +179,8 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
     }
 
     private void onRecordAudioPermissionGranted() {
-        button.setVisibility(View.GONE);
-        linearLayout.setVisibility(View.VISIBLE);
+//        button.setVisibility(View.GONE);
+//        linearLayout.setVisibility(View.VISIBLE);
 
         try {
             Speech.getInstance().stopTextToSpeech();
@@ -205,7 +208,8 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
     public void onSpeechResult(String result) {
         Log.d(TAG, "onSpeechResult: " + result.toLowerCase());
         int counter = 0;
-        ArrayList<String> numStringList = new ArrayList<>(Arrays.asList("one", "two", "three", "four", "five", "six", "seven", "eight", "nine"));
+        ArrayList<String> numStringList = new ArrayList<>(Arrays.asList("zero","one", "two", "three", "four", "five", "six", "seven", "eight", "nine"));
+        ArrayList<String> numValueList = new ArrayList<>(Arrays.asList("0","1","2","3","4","5","6","7","8","9"));
         speechList = new ArrayList<>();
 
         if(!result.isEmpty()) {
@@ -218,24 +222,42 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
             }
         }
         int sizeCounter = speechList.size();
+
         Log.d(TAG, "onSpeechResult: size of speech List => " + speechList.size());
         for (int i = 0; i < speechList.size(); i++) {
+
             Log.d(TAG, "onSpeechResult: loop starts " + i + " value " + speechList.get(i) + " -- " + textList.get(idx));
-//            boolean numericValue = false; // Because it stops on numeric as Array list is of String data-type
-                //TODO:: additional checks like if text is integer or float, then we have to keep that integer number also and compare too.
+            boolean numericValue = false; // Because it stops on numeric as Array list is of String data-type
+            String numSpeechValue=null;
+
             if( (int)(speechList.get(i).charAt(0)) <= 57 && (int)(speechList.get(i).charAt(0)) >= 48){
                 /* Safety for integer overflows with string type ArrayList */
-                Log.d(TAG, "onSpeechResult: Enter for numeric ");
                 Log.d(TAG, "onSpeechResult: Before :-> " + speechList.get(i));
-                if(Integer.parseInt(String.valueOf(speechList.get(i))) > 9){
-                    continue;
+
+                if(speechList.get(i).length() <= 1){
+                    Log.d(TAG, "onSpeechResult: success numeric loop");
+                    numSpeechValue = speechList.get(i);
+                    if ( (speechList.get(i)).equals(numValueList.get(Integer.parseInt(String.valueOf(speechList.get(i).charAt(0))))) ){
+                        // works only if it matches with numValue List elements
+                        Log.d(TAG, "onSpeechResult: Second loop in Int overflow " + numValueList.get(Integer.parseInt(String.valueOf(speechList.get(i).charAt(0)))) );
+                        speechList.set(i, numStringList.get(Integer.parseInt(speechList.get(i))));
+                    }
                 }
-                speechList.set(i,numStringList.get(Integer.parseInt(speechList.get(i))-1) );
+
                 Log.d(TAG, "onSpeechResult: After :-> " + speechList.get(i));
             }
 
+            if(numSpeechValue!=null){
+                if(textList.get(idx).substring(0,1).equals(numSpeechValue) ||
+                   textList.get(idx).substring(textList.get(idx).length()-1).equals(numSpeechValue) ){
+                    numericValue = true;
+                }
+            }
+
+
             if ( textList.get(idx).substring(0,1).equals(speechList.get(i).substring(0,1)) ||
-                 textList.get(idx).substring(textList.get(idx).length()-1).equals(speechList.get(i).substring(speechList.get(i).length()-1))
+                 textList.get(idx).substring(textList.get(idx).length()-1).equals(speechList.get(i).substring(speechList.get(i).length()-1)) ||
+                    numericValue
             ) {
                 Log.d(TAG, "onSpeechResult: correct word loop");
                     counterSpan += textAllList.get(idx).length()+1;
