@@ -270,18 +270,31 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
                 text.setText(spannableString);
                 counterSpan += textAllList.get(prevIdx).length()+1;
                 idx++;
-//                counter++;
                 prevIdx++;
                 if(sizeCounter>1){ counter++; }
 
             } else {
-                Log.d(TAG, "onSpeechResult: incorrect word loop");
-                int wrongTextSpan=counterSpan;
+                //check for next matching, if yes then both are accepted
+                if( (textList.size()>prevIdx+1) && ( speechList.get(i).substring(0,1).toLowerCase().equals(textList.get(prevIdx+1).substring(0,1)) ||
+                   speechList.get(i).substring(speechList.get(i).length()-1).equals(textList.get(prevIdx+1).substring(textList.get(prevIdx+1).length()-1)) )
+                ){
+                    counterSpan += textAllList.get(prevIdx).length()+1;
+                    spannableString.removeSpan(foregroundRedSpan);
+                    spannableString.setSpan(foregroundGreenSpan, 0, counterSpan+textAllList.get(prevIdx+1).length() , Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    text.setText(spannableString);
+                    counterSpan += textAllList.get(prevIdx+1).length()+1;
+                    idx+=2;
+                    prevIdx+=2;
+                    if(sizeCounter>1){ counter+=2; }
+                }else {
+                    Log.d(TAG, "onSpeechResult: incorrect word loop");
+                    int wrongTextSpan = counterSpan;
                     wrongTextSpan += textAllList.get(prevIdx).length();
-                Log.d(TAG, "onSpeechResults: Unmatched Word " + speechList.get(i) + " -> " + textList.get(prevIdx) + " to " + textAllList.get(prevIdx));
-                spannableString.setSpan(foregroundRedSpan, counterSpan, wrongTextSpan, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
-                text.setText(spannableString);
-                idx++;
+                    Log.d(TAG, "onSpeechResults: Unmatched Word " + speechList.get(i) + " -> " + textList.get(prevIdx) + " to " + textAllList.get(prevIdx));
+                    spannableString.setSpan(foregroundRedSpan, counterSpan, wrongTextSpan, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    text.setText(spannableString);
+                    idx++;
+                }
 //                break;
             }
 
