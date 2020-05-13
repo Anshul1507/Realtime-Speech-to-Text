@@ -58,7 +58,7 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
     private ArrayList<String> textList;
     private ArrayList<String> speechList;
     private ArrayList<String> textAllList = new ArrayList<String>();
-    private int counterSpan = 0,idx=0,prevCounterSpan = 0;
+    private int counterSpan = 0,idx=0,prevIdx=0,prevCounterSpan = 0;
     private SpannableString spannableString;
     private ForegroundColorSpan foregroundRedSpan,foregroundGreenSpan;
 
@@ -224,9 +224,12 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
         int sizeCounter = speechList.size();
 
         Log.d(TAG, "onSpeechResult: size of speech List => " + speechList.size());
+
+        idx = prevIdx;
+
         for (int i = 0; i < speechList.size(); i++) {
 
-            Log.d(TAG, "onSpeechResult: loop starts " + i + " value " + speechList.get(i) + " -- " + textList.get(idx));
+            Log.d(TAG, "onSpeechResult: loop starts " + i + " value " + speechList.get(i) + " -- " + textList.get(prevIdx));
             boolean numericValue = false; // Because it stops on numeric as Array list is of String data-type
             String numSpeechValue=null;
 
@@ -248,34 +251,37 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
             }
 
             if(numSpeechValue!=null){
-                if(textList.get(idx).substring(0,1).equals(numSpeechValue) ||
-                   textList.get(idx).substring(textList.get(idx).length()-1).equals(numSpeechValue) ){
+                if(textList.get(prevIdx).substring(0,1).equals(numSpeechValue) ||
+                   textList.get(prevIdx).substring(textList.get(prevIdx).length()-1).equals(numSpeechValue) ){
                     numericValue = true;
                 }
             }
 
 
-            if ( textList.get(idx).substring(0,1).equals(speechList.get(i).substring(0,1)) ||
-                 textList.get(idx).substring(textList.get(idx).length()-1).equals(speechList.get(i).substring(speechList.get(i).length()-1)) ||
+            if ( textList.get(prevIdx).substring(0,1).equals(speechList.get(i).substring(0,1).toLowerCase()) ||
+                 textList.get(prevIdx).substring(textList.get(prevIdx).length()-1).equals(speechList.get(i).substring(speechList.get(i).length()-1).toLowerCase()) ||
                     numericValue
             ) {
                 Log.d(TAG, "onSpeechResult: correct word loop");
-                    counterSpan += textAllList.get(idx).length()+1;
-                Log.d(TAG, "onSpeechResults: Matched Word " + speechList.get(i) + " -> " + textList.get(idx) + " to " + textAllList.get(idx));
-                spannableString.removeSpan(foregroundRedSpan);
-                spannableString.setSpan(foregroundGreenSpan, 0, counterSpan , Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
-                text.setText(spannableString);
 
+                Log.d(TAG, "onSpeechResults: Matched Word " + speechList.get(i) + " -> " + textList.get(prevIdx) + " to " + textAllList.get(prevIdx));
+                spannableString.removeSpan(foregroundRedSpan);
+                spannableString.setSpan(foregroundGreenSpan, 0, counterSpan+textAllList.get(prevIdx).length() , Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+                text.setText(spannableString);
+                counterSpan += textAllList.get(prevIdx).length()+1;
                 idx++;
+//                counter++;
+                prevIdx++;
                 if(sizeCounter>1){ counter++; }
 
             } else {
                 Log.d(TAG, "onSpeechResult: incorrect word loop");
                 int wrongTextSpan=counterSpan;
-                    wrongTextSpan += textAllList.get(idx).length();
-                Log.d(TAG, "onSpeechResults: Unmatched Word " + speechList.get(i) + " -> " + textList.get(idx) + " to " + textAllList.get(idx));
+                    wrongTextSpan += textAllList.get(prevIdx).length();
+                Log.d(TAG, "onSpeechResults: Unmatched Word " + speechList.get(i) + " -> " + textList.get(prevIdx) + " to " + textAllList.get(prevIdx));
                 spannableString.setSpan(foregroundRedSpan, counterSpan, wrongTextSpan, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
                 text.setText(spannableString);
+                idx++;
 //                break;
             }
 
@@ -300,6 +306,9 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
 
         }
             Log.d(TAG, "onSpeechResult: -----> Empty Running of loop" );
+
+        //TODO :: stop listener on nearly 10 empty cont. speech result (Mainly Internet connection)
+        //TODO :: check for the last word to stop the listener
 
             Speech.getInstance().stopTextToSpeech();
             if (isRunning) {
