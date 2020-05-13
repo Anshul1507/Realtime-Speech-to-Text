@@ -82,14 +82,14 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
         linearLayout.setVisibility(View.GONE);
         text.setText(R.string.sample1);
 
-        String paraText = text.getText().toString().toLowerCase();
+        String paraText = text.getText().toString();
         spannableString = new SpannableString(paraText);
         foregroundRedSpan = new ForegroundColorSpan(Color.RED);
         foregroundGreenSpan = new ForegroundColorSpan(Color.GREEN);
 
 
         textList = new ArrayList<>();
-        textList.addAll(getWords(paraText));
+        textList.addAll(getWords(paraText.toLowerCase()));
 
         textAllList = new ArrayList<String>(Arrays.asList(paraText.split(" ")));
 
@@ -215,7 +215,6 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
         if(!result.isEmpty()) {
             speechList.clear();
             if(result.length()>1) {
-//                speechList = new ArrayList<>(Arrays.asList(result.toLowerCase().split(" ")));
                 speechList.addAll(getWords(result));
             }else{
                 speechList.add(result.toLowerCase());
@@ -229,25 +228,18 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
 
         for (int i = 0; i < speechList.size(); i++) {
 
-            Log.d(TAG, "onSpeechResult: loop starts " + i + " value " + speechList.get(i) + " -- " + textList.get(prevIdx));
             boolean numericValue = false; // Because it stops on numeric as Array list is of String data-type
             String numSpeechValue=null;
 
             if( (int)(speechList.get(i).charAt(0)) <= 57 && (int)(speechList.get(i).charAt(0)) >= 48){
                 /* Safety for integer overflows with string type ArrayList */
-                Log.d(TAG, "onSpeechResult: Before :-> " + speechList.get(i));
-
                 if(speechList.get(i).length() <= 1){
-                    Log.d(TAG, "onSpeechResult: success numeric loop");
                     numSpeechValue = speechList.get(i);
                     if ( (speechList.get(i)).equals(numValueList.get(Integer.parseInt(String.valueOf(speechList.get(i).charAt(0))))) ){
                         // works only if it matches with numValue List elements
-                        Log.d(TAG, "onSpeechResult: Second loop in Int overflow " + numValueList.get(Integer.parseInt(String.valueOf(speechList.get(i).charAt(0)))) );
                         speechList.set(i, numStringList.get(Integer.parseInt(speechList.get(i))));
                     }
                 }
-
-                Log.d(TAG, "onSpeechResult: After :-> " + speechList.get(i));
             }
 
             if(numSpeechValue!=null){
@@ -262,8 +254,6 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
                  textList.get(prevIdx).substring(textList.get(prevIdx).length()-1).equals(speechList.get(i).substring(speechList.get(i).length()-1).toLowerCase()) ||
                     numericValue
             ) {
-                Log.d(TAG, "onSpeechResult: correct word loop");
-
                 Log.d(TAG, "onSpeechResults: Matched Word " + speechList.get(i) + " -> " + textList.get(prevIdx) + " to " + textAllList.get(prevIdx));
                 spannableString.removeSpan(foregroundRedSpan);
                 spannableString.setSpan(foregroundGreenSpan, 0, counterSpan+textAllList.get(prevIdx).length() , Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
@@ -274,7 +264,7 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
                 if(sizeCounter>1){ counter++; }
 
             } else {
-                //check for next matching, if yes then both are accepted
+                //check for next word matching, if yes then both are accepted (if first word didn't matched)
                 if( (textList.size()>prevIdx+1) && ( speechList.get(i).substring(0,1).toLowerCase().equals(textList.get(prevIdx+1).substring(0,1)) ||
                    speechList.get(i).substring(speechList.get(i).length()-1).equals(textList.get(prevIdx+1).substring(textList.get(prevIdx+1).length()-1)) )
                 ){
@@ -287,15 +277,11 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
                     prevIdx+=2;
                     if(sizeCounter>1){ counter+=2; }
                 }else {
-                    Log.d(TAG, "onSpeechResult: incorrect word loop");
-                    int wrongTextSpan = counterSpan;
-                    wrongTextSpan += textAllList.get(prevIdx).length();
                     Log.d(TAG, "onSpeechResults: Unmatched Word " + speechList.get(i) + " -> " + textList.get(prevIdx) + " to " + textAllList.get(prevIdx));
-                    spannableString.setSpan(foregroundRedSpan, counterSpan, wrongTextSpan, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    spannableString.setSpan(foregroundRedSpan, counterSpan, counterSpan + textAllList.get(prevIdx).length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
                     text.setText(spannableString);
                     idx++;
                 }
-//                break;
             }
 
             if(i==sizeCounter-1 && counter==0){
@@ -316,33 +302,31 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
                 }
             }
             prevCounterSpan = counterSpan;
-
         }
-            Log.d(TAG, "onSpeechResult: -----> Empty Running of loop" );
+            Log.d(TAG, "onSpeechResult: -----> Empty Running of loop ");
 
         //TODO :: stop listener on nearly 10 empty cont. speech result (Mainly Internet connection)
-        //TODO :: check for the last word to stop the listener
-
-            Speech.getInstance().stopTextToSpeech();
-            if (isRunning) {
-                Handler handler = new Handler();
-                handler.postDelayed(new Runnable() {
-                    @Override
-                    public void run() {
-                        try {
-                            Speech.getInstance().startListening(progress, MainActivity.this);
-                            audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, 0, 0);
-                        } catch (SpeechRecognitionNotAvailable speechRecognitionNotAvailable) {
-                            speechRecognitionNotAvailable.printStackTrace();
-                        } catch (GoogleVoiceTypingDisabledException e) {
-                            e.printStackTrace();
+            if(prevIdx<textList.size()) {
+                Speech.getInstance().stopTextToSpeech();
+                if (isRunning) {
+                    Handler handler = new Handler();
+                    handler.postDelayed(new Runnable() {
+                        @Override
+                        public void run() {
+                            try {
+                                Speech.getInstance().startListening(progress, MainActivity.this);
+                                audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, 0, 0);
+                            } catch (SpeechRecognitionNotAvailable speechRecognitionNotAvailable) {
+                                speechRecognitionNotAvailable.printStackTrace();
+                            } catch (GoogleVoiceTypingDisabledException e) {
+                                e.printStackTrace();
+                            }
                         }
-                    }
-                }, 100);
-            } else {
-
-                button.setVisibility(View.VISIBLE);
-                linearLayout.setVisibility(View.GONE);
+                    }, 100);
+                } else {
+                    button.setVisibility(View.VISIBLE);
+                    linearLayout.setVisibility(View.GONE);
+                }
             }
 
     }
