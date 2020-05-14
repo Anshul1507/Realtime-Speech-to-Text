@@ -47,8 +47,8 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
     private final int PERMISSIONS_REQUEST = 1;
     private static final String TAG = "MainActivity";
     private ImageButton button;
-    private Button btnStop;
-    private TextView text;
+    private Button btnStop,btnResultErase;
+    private TextView text,resultText;
     private SpeechProgressView progress;
     private LinearLayout linearLayout;
     private Boolean isRunning = true;
@@ -78,6 +78,8 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
         btnStop = findViewById(R.id.buttonStop);
         text = findViewById(R.id.text);
         progress = findViewById(R.id.progress);
+        btnResultErase = findViewById(R.id.button_clear_result_text);
+        resultText = findViewById(R.id.speech_result_text);
 
         linearLayout.setVisibility(View.GONE);
         text.setText(R.string.sample1);
@@ -93,6 +95,12 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
 
         textAllList = new ArrayList<String>(Arrays.asList(paraText.split(" ")));
 
+        btnResultErase.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                resultText.setText("Speech Result :-> ");
+            }
+        });
 
         button.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -210,6 +218,7 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
     @Override
     public void onSpeechResult(String result) {
         Log.d(TAG, "onSpeechResult: " + result.toLowerCase());
+        resultText.append(result.toLowerCase() + "  ");
         int counter = 0;
         ArrayList<String> numStringList = new ArrayList<>(Arrays.asList("zero","one", "two", "three", "four", "five", "six", "seven", "eight", "nine"));
         ArrayList<String> numValueList = new ArrayList<>(Arrays.asList("0","1","2","3","4","5","6","7","8","9"));
