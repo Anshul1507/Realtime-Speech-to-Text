@@ -29,7 +29,6 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
 
-
 import net.gotev.speech.GoogleVoiceTypingDisabledException;
 import net.gotev.speech.Speech;
 import net.gotev.speech.SpeechDelegate;
@@ -40,15 +39,17 @@ import net.gotev.speech.ui.SpeechProgressView;
 import java.text.BreakIterator;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 public class MainActivity extends AppCompatActivity implements SpeechDelegate {
 
     private final int PERMISSIONS_REQUEST = 1;
     private static final String TAG = "MainActivity";
     private ImageButton button;
-    private Button btnStop,btnResultErase;
-    private TextView text,resultText;
+    private Button btnStop, btnResultErase;
+    private TextView text, resultText;
     private SpeechProgressView progress;
     private LinearLayout linearLayout;
     private Boolean isRunning = true;
@@ -56,11 +57,12 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
     private AudioManager audioManager;
 
     private ArrayList<String> textList;
-    private ArrayList<String> speechList;
+    private ArrayList<String> speechList, partialSpeechList;
+    private Set set = new LinkedHashSet();
     private ArrayList<String> textAllList = new ArrayList<String>();
-    private int counterSpan = 0,idx=0,prevIdx=0,prevCounterSpan = 0;
+    private int counterSpan = 0, idx = 0, prevIdx = 0, prevCounterSpan = 0, partialResultSpeechCounter = 0;
     private SpannableString spannableString;
-    private ForegroundColorSpan foregroundRedSpan,foregroundGreenSpan;
+    private ForegroundColorSpan foregroundRedSpan, foregroundGreenSpan;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -113,7 +115,7 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
                 btnStop.setVisibility(View.VISIBLE);
                 linearLayout.setVisibility(View.VISIBLE);
                 counterSpan = 0;
-                prevIdx=0;
+                prevIdx = 0;
                 Speech.getInstance().stopTextToSpeech();
                 onButtonClick();
             }
@@ -124,7 +126,7 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
             public void onClick(View view) {
                 isRunning = false;
                 btnStop.setVisibility(View.GONE);
-                Toast.makeText(getApplicationContext(),"Hold on to start again",Toast.LENGTH_SHORT).show();
+                Toast.makeText(getApplicationContext(), "Hold on to start again", Toast.LENGTH_SHORT).show();
                 linearLayout.setVisibility(View.GONE);
                 Speech.getInstance().stopTextToSpeech();
                 audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, original_volume_level, 0);
@@ -218,148 +220,113 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
     @Override
     public void onSpeechResult(String result) {
         Log.d(TAG, "onSpeechResult: " + result.toLowerCase());
-        resultText.append(result.toLowerCase() + "  ");
-        int counter = 0;
-        ArrayList<String> numStringList = new ArrayList<>(Arrays.asList("zero","one", "two", "three", "four", "five", "six", "seven", "eight", "nine"));
-        ArrayList<String> numValueList = new ArrayList<>(Arrays.asList("0","1","2","3","4","5","6","7","8","9"));
-        speechList = new ArrayList<>();
-
-        if(!result.isEmpty()) {
-            speechList.clear();
-            if(result.length()>1) {
-                speechList.addAll(getWords(result));
-            }else{
-                speechList.add(result.toLowerCase());
-            }
-        }
-        int sizeCounter = speechList.size();
-
-        Log.d(TAG, "onSpeechResult: size of speech List => " + speechList.size());
-
-        idx = prevIdx;
-
-        for (int i = 0; i < speechList.size(); i++) {
-
-            boolean numericValue = false; // Because it stops on numeric as Array list is of String data-type
-            String numSpeechValue=null;
-
-            if( (int)(speechList.get(i).charAt(0)) <= 57 && (int)(speechList.get(i).charAt(0)) >= 48){
-                /* Safety for integer overflows with string type ArrayList */
-                if(speechList.get(i).length() <= 1){
-                    numSpeechValue = speechList.get(i);
-                    if ( (speechList.get(i)).equals(numValueList.get(Integer.parseInt(String.valueOf(speechList.get(i).charAt(0))))) ){
-                        // works only if it matches with numValue List elements
-                        speechList.set(i, numStringList.get(Integer.parseInt(speechList.get(i))));
+        Speech.getInstance().stopTextToSpeech();
+            Handler handler = new Handler();
+            handler.postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        Speech.getInstance().startListening(progress, MainActivity.this);
+                        audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, 0, 0);
+                    } catch (SpeechRecognitionNotAvailable speechRecognitionNotAvailable) {
+                        speechRecognitionNotAvailable.printStackTrace();
+                    } catch (GoogleVoiceTypingDisabledException e) {
+                        e.printStackTrace();
                     }
                 }
-            }
-
-            if(numSpeechValue!=null){
-                if(textList.get(prevIdx).substring(0,1).equals(numSpeechValue) ||
-                   textList.get(prevIdx).substring(textList.get(prevIdx).length()-1).equals(numSpeechValue) ){
-                    numericValue = true;
-                }
-            }
-
-
-            if ( textList.get(prevIdx).substring(0,1).equals(speechList.get(i).substring(0,1).toLowerCase()) ||
-                 textList.get(prevIdx).substring(textList.get(prevIdx).length()-1).equals(speechList.get(i).substring(speechList.get(i).length()-1).toLowerCase()) ||
-                    numericValue
-            ) {
-                Log.d(TAG, "onSpeechResults: Matched Word " + speechList.get(i) + " -> " + textList.get(prevIdx) + " to " + textAllList.get(prevIdx));
-                spannableString.removeSpan(foregroundRedSpan);
-                spannableString.setSpan(foregroundGreenSpan, 0, counterSpan+textAllList.get(prevIdx).length() , Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
-                text.setText(spannableString);
-                counterSpan += textAllList.get(prevIdx).length()+1;
-                idx++;
-                prevIdx++;
-                if(sizeCounter>1){ counter++; }
-
-            } else {
-                //check for next word matching, if yes then both are accepted (if first word didn't matched)
-                if( (textList.size()>prevIdx+1) && ( speechList.get(i).substring(0,1).toLowerCase().equals(textList.get(prevIdx+1).substring(0,1)) ||
-                   speechList.get(i).substring(speechList.get(i).length()-1).equals(textList.get(prevIdx+1).substring(textList.get(prevIdx+1).length()-1)) )
-                ){
-                    counterSpan += textAllList.get(prevIdx).length()+1;
-                    spannableString.removeSpan(foregroundRedSpan);
-                    spannableString.setSpan(foregroundGreenSpan, 0, counterSpan+textAllList.get(prevIdx+1).length() , Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
-                    text.setText(spannableString);
-                    counterSpan += textAllList.get(prevIdx+1).length()+1;
-                    idx+=2;
-                    prevIdx+=2;
-                    if(sizeCounter>1){ counter+=2; }
-                }else {
-                    Log.d(TAG, "onSpeechResults: Unmatched Word " + speechList.get(i) + " -> " + textList.get(prevIdx) + " to " + textAllList.get(prevIdx));
-                    spannableString.setSpan(foregroundRedSpan, counterSpan, counterSpan + textAllList.get(prevIdx).length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
-                    text.setText(spannableString);
-                    idx++;
-                }
-            }
-
-            if(i==sizeCounter-1 && counter==0){
-                /* When no word is matched or size is one -> counter value is 0 */
-                speechList.clear();
-            }
-
-            if(i==sizeCounter-1 && counter>0){
-                /*Checking on 50% accuracy*/
-                Log.d(TAG, "onSpeechResult: Accuracy: -> " + (float)(sizeCounter/(float)counter)*100);
-                if(sizeCounter/counter<=2){
-                    spannableString.removeSpan(foregroundRedSpan);
-                    spannableString.setSpan(foregroundGreenSpan, 0, counterSpan , Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
-                    text.setText(spannableString);
-                }else{
-                    spannableString.setSpan(foregroundRedSpan,prevCounterSpan,counterSpan, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                    text.setText(spannableString);
-                }
-            }
-            prevCounterSpan = counterSpan;
-            if(idx == textList.size()){
-                // as same as button stop function
-                isRunning = false;
-                btnStop.setVisibility(View.GONE);
-                button.setVisibility(View.VISIBLE);
-                linearLayout.setVisibility(View.GONE);
-                Speech.getInstance().stopTextToSpeech();
-                audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, original_volume_level, 0);
-            }
-        }
-            Log.d(TAG, "onSpeechResult: -----> Empty Running of loop ");
-
-        //TODO :: stop listener on nearly 10 empty cont. speech result (Mainly Internet connection)
-            if(prevIdx<textList.size()) {
-                Speech.getInstance().stopTextToSpeech();
-                if (isRunning) {
-                    Handler handler = new Handler();
-                    handler.postDelayed(new Runnable() {
-                        @Override
-                        public void run() {
-                            try {
-                                Speech.getInstance().startListening(progress, MainActivity.this);
-                                audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, 0, 0);
-                            } catch (SpeechRecognitionNotAvailable speechRecognitionNotAvailable) {
-                                speechRecognitionNotAvailable.printStackTrace();
-                            } catch (GoogleVoiceTypingDisabledException e) {
-                                e.printStackTrace();
-                            }
-                        }
-                    }, 100);
-                } else {
-                    button.setVisibility(View.VISIBLE);
-//                    linearLayout.setVisibility(View.GONE);
-                }
-            }
-
+            }, 100);
     }
 
 
     @Override
     public void onSpeechPartialResults(List<String> results) {
-//        text.setText("");
-//        for (String partial : results) {
-//            Log.d(TAG, "onSpeechPartialResults: " + partial);
-//            text.append(partial + " ");
+        resultText.append("\n");
+
+        for(String partial : results){
+            Log.d(TAG, "onSpeechPartialResults: " + partial);
+        }
+//        set.addAll(Arrays.asList(results.toString().split(" ")));
+//        if(idx<=textAllList.size()){
+//            matchingAlgorithm(set);
+//        }else{
+//            //Finished
 //        }
+
+    }
+
+    private void matchingAlgorithm(Set getList){
+
+        /* Check for eg: 2 and two (Integer and string of number) -
+         * -> using separate array list for them.
+         */
+        ArrayList<String> numIntegerList = new ArrayList<>(Arrays.asList("0", "1", "2", "3", "4", "5", "6", "7", "8", "9"));
+        ArrayList<String> numStringList = new ArrayList<>(Arrays.asList("zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine"));
+
+        /* Copy the data of getList into array list, so upon clearing it from above function, data remains safe */
+        ArrayList<String> partialSpeechResult = new ArrayList<>();
+        partialSpeechResult.addAll(0,getList);
+        Log.d("Test", "matchingAlgorithm: " + partialSpeechResult.size() + "\n " + partialSpeechResult.toString());
+
+        for(int i=0;i<partialSpeechResult.size();i++){
+            Log.d("--------------> ", "run: " + idx + " -> " + textAllList.size());
+            boolean numericValueFlag = false;
+            String numSpeechValue = null;
+
+            if ((int) (partialSpeechResult.get(i).charAt(0)) <= 57 && (int) (partialSpeechResult.get(i).charAt(0)) >= 48) {
+                /* Safety for integer overflows with string type ArrayList */
+                if (partialSpeechResult.get(i).length() <= 1) {
+                    numSpeechValue = partialSpeechResult.get(i);
+                    if ((partialSpeechResult.get(i)).equals(numIntegerList.get(Integer.parseInt(String.valueOf(partialSpeechResult.get(i).charAt(0)))))) {
+                        // works only if it matches with numValue List elements
+                        partialSpeechResult.set(i, numStringList.get(Integer.parseInt(partialSpeechResult.get(i))));
+                    }
+                }
+            }
+
+            if (numSpeechValue != null ) {
+                if (textList.get(idx).substring(0, 1).equals(numSpeechValue) ||
+                        textList.get(idx).substring(textList.get(idx).length() - 1).equals(numSpeechValue)) {
+                    numericValueFlag = true;
+                }
+            }
+
+            /* General Algorithm for checking word in partial speech list at cur idx|| numeric matching*/
+            if(partialSpeechResult.contains(textList.get(idx)) || numericValueFlag){
+                Log.d("Test", "Matched Word " + textList.get(idx));
+                spannableString.removeSpan(foregroundRedSpan);
+                spannableString.setSpan(foregroundGreenSpan,0,counterSpan+textAllList.get(idx).length(),Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                text.setText(spannableString);
+                counterSpan += textAllList.get(idx).length()+1; //update counterSpan for next word & +1 for white space
+                idx++;
+            }else{
+                /* If first word didn't match and if there is second word and matched -> move forward with accuracy of 50% */
+//                if( (textAllList.size()>idx+1) && partialSpeechResult.size()+ && partialSpeechResult.contains(textList.get(idx+1)) ){
+//                    Log.d("Test", "Second Matched Word " + textList.get(idx+1));
+//                    spannableString.removeSpan(foregroundRedSpan);
+//                    counterSpan += textAllList.get(idx).length()+1; //for previous word length
+//                    spannableString.setSpan(foregroundGreenSpan,0,counterSpan+textAllList.get(idx+1).length(),Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+//                    sampleText.setText(spannableString);
+//                    counterSpan += textAllList.get(idx+1).length()+1; //update counterSpan for next word & +1 for white space
+//                    idx+=2; //two words matched
+//                }else{
+                /* Both the words didn't matched */
+                Log.d("Test", " No Matched Word " + textList.get(idx));
+                spannableString.setSpan(foregroundRedSpan,counterSpan,counterSpan+textAllList.get(idx).length(),Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                text.setText(spannableString);
+//                }
+            }
+
+            /* Another Check for exiting */
+            if(idx == textList.size()){
+                //Finished
+                break;
+            }
+
+        }
+
+
+
+
     }
 
     private void showSpeechNotSupportedDialog() {
